@@ -12,16 +12,6 @@ class MonsterTimer {
     var time: Long = 0
     var position: Int = 0
 
-    constructor() {
-
-    }
-
-    constructor(name: String, time: Long, position: Int) {
-        this.name = name
-        this.time = time
-        this.position = position
-    }
-
     override fun toString(): String {
         return "MonsterTimer{" +
                 "name='" + name + '\'' +

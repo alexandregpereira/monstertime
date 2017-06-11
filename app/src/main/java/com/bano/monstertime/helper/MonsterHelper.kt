@@ -6,7 +6,6 @@ import android.os.Build
 import android.speech.tts.TextToSpeech
 import com.bano.monstertime.R
 import com.bano.monstertime.constant.KeysContract
-import com.bano.monstertime.model.MonsterTimer
 import com.bano.monstertime.util.PreferencesUtils
 import java.util.*
 
@@ -27,17 +26,20 @@ object MonsterHelper {
         return userId
     }
 
-    fun speak(textToSpeech: TextToSpeech, speak: String) {
+    fun speak(textToSpeech: TextToSpeech?, speak: String?) {
+        if(speak == null) return
         if (Build.VERSION.SDK_INT >= 21)
-            textToSpeech.speak(speak, TextToSpeech.QUEUE_FLUSH, null, speak)
+            textToSpeech?.speak(speak, TextToSpeech.QUEUE_FLUSH, null, speak)
         else
-            textToSpeech.speak(speak, TextToSpeech.QUEUE_FLUSH, null)
+            textToSpeech?.speak(speak, TextToSpeech.QUEUE_FLUSH, null)
     }
 
-    fun startMonster(context: Context, textToSpeech: TextToSpeech?, items: ArrayList<MonsterTimer>) {
+    fun startMonster(context: Context, finish: () -> Unit) {
         val mp = MediaPlayer.create(context, R.raw.evil_laugh)
+        mp.setOnCompletionListener {
+            mp.release()
+            finish()
+        }
         mp.start()
-
-
     }
 }

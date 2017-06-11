@@ -24,7 +24,7 @@ abstract class BaseAdapter<T, E : ViewDataBinding> : RecyclerView.Adapter<BaseAd
     abstract fun onBindViewHolder(binding: E, item: T)
 
     interface OnClickListener<in T> {
-        fun onClicked(t: T)
+        fun onClicked(item: T)
     }
 
     constructor(items: ArrayList<T>, layoutRes: Int, listener: OnClickListener<T>) {
