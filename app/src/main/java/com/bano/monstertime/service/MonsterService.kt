@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.widget.Toast
+import com.bano.monstertime.R
 import com.bano.monstertime.helper.MonsterHelper
 import com.bano.monstertime.model.MonsterTimer
 import java.util.*
@@ -29,6 +30,7 @@ class MonsterService : Service() {
     private var mListener: OnMonsterListener? = null
     private var mMonsterTimerList: ArrayList<MonsterTimer>? = null
     private var mCountTimer: CountDownTimer? = null
+    private val mHandler = Handler()
 
     interface OnMonsterListener{
         fun onUpdateTimer(millisUntilFinished: Long)
@@ -53,12 +55,11 @@ class MonsterService : Service() {
         }
         mMonsterTimerList = monsterTimers
         val iterator = monsterTimers.iterator()
-        MonsterHelper.startMonster(this) { startMonsterTimer(iterator.next(), iterator) }
+        MonsterHelper.speak(this, R.raw.evil_laugh) { startMonsterTimer(iterator.next(), iterator) }
     }
 
     private fun startMonsterTimer(monsterTimer: MonsterTimer, iterator: MutableIterator<MonsterTimer>) {
-        MonsterHelper.speak(textToSpeech, monsterTimer.name)
-        mCountTimer = CountTimer(monsterTimer, iterator).start()
+        MonsterHelper.speak(textToSpeech, monsterTimer.name, mHandler) { mCountTimer = CountTimer(monsterTimer, iterator).start() }
     }
 
     override fun onDestroy() {
@@ -91,17 +92,21 @@ class MonsterService : Service() {
             Log.d(TAG, "0")
             if(!iterator.hasNext()) {
                 mListener?.onMonsterFinished()
+                MonsterHelper.speak(this@MonsterService, R.raw.evil_laugh) {}
                 stopSelf()
                 return
             }
-            MonsterHelper.startMonster(this@MonsterService) { startMonsterTimer(iterator.next(), iterator) }
+            MonsterHelper.speak(this@MonsterService, R.raw.no_mercy) { startMonsterTimer(iterator.next(), iterator) }
             mListener?.onTimerFinish(monsterTimer)
         }
 
         override fun onTick(millisUntilFinished: Long) {
             Log.d(TAG, millisUntilFinished.toString())
             if(millisUntilFinished - 1000 < 1000) {
-                Handler().postDelayed({mListener?.onUpdateTimer(1000)}, 1000)
+                mHandler.postDelayed({mListener?.onUpdateTimer(1000)}, 1000)
+            }
+            else if(millisUntilFinished in 5000..6000){
+                MonsterHelper.speak(this@MonsterService, R.raw.countdown_five_seconds) {}
             }
             mListener?.onUpdateTimer(millisUntilFinished)
         }
