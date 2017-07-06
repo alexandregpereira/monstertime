@@ -1,0 +1,3 @@
+[submodule "goblin-adapter"]
+	path = goblin-adapter
+	url = https://github.com/alexandregpereira/goblin-adapter.git

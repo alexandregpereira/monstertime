@@ -11,9 +11,10 @@ import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.widget.Toast
 import com.bano.monstertime.R
+import com.bano.monstertime.constant.KeysContract
 import com.bano.monstertime.helper.MonsterHelper
 import com.bano.monstertime.model.MonsterTimer
-import java.util.*
+import com.bano.monstertime.viewmodel.MonsterTimerViewModel
 
 /**
 
@@ -22,55 +23,52 @@ import java.util.*
 
 class MonsterService : Service() {
 
-    private val TAG = "MonsterService"
-
     private val mBinder = LocalBinder()
-    private var textToSpeech: TextToSpeech? = null
-    private var mTextInit: Boolean = false
-    private var mListener: OnMonsterListener? = null
-    private var mMonsterTimerList: ArrayList<MonsterTimer>? = null
-    private var mCountTimer: CountDownTimer? = null
     private val mHandler = Handler()
 
-    interface OnMonsterListener{
-        fun onUpdateTimer(millisUntilFinished: Long)
-        fun onTimerFinish(monsterTimer: MonsterTimer)
-        fun onMonsterFinished()
-    }
+    private var mTextToSpeech: TextToSpeech? = null
+    private var mTextInit: Boolean = false
+    private var mCountTimer: CountDownTimer? = null
+    private var mModel: MonsterTimerViewModel? = null
 
     override fun onCreate() {
         super.onCreate()
-        textToSpeech = TextToSpeech(applicationContext, TextToSpeech.OnInitListener { status -> mTextInit = status != TextToSpeech.ERROR })
+        mTextToSpeech = TextToSpeech(applicationContext, TextToSpeech.OnInitListener { status -> mTextInit = status != TextToSpeech.ERROR })
     }
 
     override fun onBind(intent: Intent): IBinder? {
         return mBinder
     }
 
-    fun startMonster(monsterTimers: ArrayList<MonsterTimer>) {
-        if(monsterTimers.isEmpty()) return
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(KeysContract.TAG, "onStartCommand")
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    fun startMonster(model: MonsterTimerViewModel) {
+        Log.d(KeysContract.TAG, "startMonster")
+        start(this)
+        mModel = model
+        val monsterTimerList = model.monsterTimersObservable.value ?: return
+        if(monsterTimerList.isEmpty()) return
         if (!mTextInit) {
             Toast.makeText(this, "Not initialize", Toast.LENGTH_LONG).show()
             return
         }
-        mMonsterTimerList = monsterTimers
-        val iterator = monsterTimers.iterator()
+
+        val iterator = monsterTimerList.iterator()
         MonsterHelper.speak(this, R.raw.evil_laugh) { startMonsterTimer(iterator.next(), iterator) }
     }
 
-    private fun startMonsterTimer(monsterTimer: MonsterTimer, iterator: MutableIterator<MonsterTimer>) {
-        MonsterHelper.speak(textToSpeech, monsterTimer.name, mHandler) { mCountTimer = CountTimer(monsterTimer, iterator).start() }
+    private fun startMonsterTimer(monsterTimer: MonsterTimer, iterator: Iterator<MonsterTimer>) {
+        MonsterHelper.speak(mTextToSpeech, monsterTimer.name, mHandler) { mCountTimer = CountTimer(monsterTimer, iterator).start() }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         mCountTimer?.cancel()
-        textToSpeech?.stop()
-        textToSpeech?.shutdown()
-    }
-
-    fun setMonsterListener(listener: OnMonsterListener) {
-        mListener = listener
+        mTextToSpeech?.stop()
+        mTextToSpeech?.shutdown()
     }
 
     inner class LocalBinder : Binder() {
@@ -87,28 +85,31 @@ class MonsterService : Service() {
         }
     }
 
-    inner class CountTimer(val monsterTimer: MonsterTimer, val iterator: MutableIterator<MonsterTimer>) : CountDownTimer(monsterTimer.time, 1000) {
+    inner class CountTimer(monsterTimer: MonsterTimer, val iterator: Iterator<MonsterTimer>) : CountDownTimer(monsterTimer.time, 1000) {
+        private var mCount = monsterTimer.time
+
         override fun onFinish() {
-            Log.d(TAG, "0")
+            Log.d(KeysContract.TAG, "0")
+            mModel?.timerObservable?.value = "0"
             if(!iterator.hasNext()) {
-                mListener?.onMonsterFinished()
                 MonsterHelper.speak(this@MonsterService, R.raw.evil_laugh) {}
                 stopSelf()
                 return
             }
-            MonsterHelper.speak(this@MonsterService, R.raw.no_mercy) { startMonsterTimer(iterator.next(), iterator) }
-            mListener?.onTimerFinish(monsterTimer)
+
+            startMonsterTimer(iterator.next(), iterator)
         }
 
         override fun onTick(millisUntilFinished: Long) {
-            Log.d(TAG, millisUntilFinished.toString())
+            Log.d(KeysContract.TAG, millisUntilFinished.toString())
             if(millisUntilFinished - 1000 < 1000) {
-                mHandler.postDelayed({mListener?.onUpdateTimer(1000)}, 1000)
+                mHandler.postDelayed({ mModel?.timerObservable?.value = "1" }, 1000)
             }
             else if(millisUntilFinished in 5000..6000){
                 MonsterHelper.speak(this@MonsterService, R.raw.countdown_five_seconds) {}
             }
-            mListener?.onUpdateTimer(millisUntilFinished)
+            mCount -= 1000
+            mModel?.timerObservable?.value = (mCount / 1000).toString()
         }
     }
 }

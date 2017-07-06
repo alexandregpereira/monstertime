@@ -7,5 +7,6 @@ package com.bano.monstertime.constant
 
 object KeysContract {
 
+    val TAG = "MonsterTag"
     val USER_ID_KEY = "USER_ID_KEY"
 }

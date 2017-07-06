@@ -8,6 +8,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.support.annotation.RawRes
 import com.bano.monstertime.constant.KeysContract
+import com.bano.monstertime.model.MonsterTimer
 import com.bano.monstertime.util.PreferencesUtils
 import java.util.*
 
@@ -44,6 +45,15 @@ object MonsterHelper {
             finish()
         }
         mp.start()
+    }
+
+    fun countTotalTimerInSeconds(monsterTimers: List<MonsterTimer>): Int{
+        var count = 0
+        monsterTimers.forEach {
+            count += (it.time / 1000).toInt()
+        }
+
+        return count;
     }
 
     private class CompletionListener(val handler: Handler, val finish: () -> Unit): UtteranceProgressListener(){
